@@ -12,7 +12,12 @@ info() { echo "    → $1"; }
 
 # 3a: TTY なし・stdin クローズで完了する
 echo "Testing: runs without TTY (stdin redirected from /dev/null)"
-output=$(timeout "${TIMEOUT_SECS}" ${CLI_CMD} ${RESOURCE} ${LIST_VERB} </dev/null 2>&1); code=$?
+if command -v timeout > /dev/null 2>&1; then
+    output=$(timeout "${TIMEOUT_SECS}" ${CLI_CMD} ${RESOURCE} ${LIST_VERB} </dev/null 2>&1); code=$?
+else
+    info "Warning: 'timeout' command not found. Running without timeout."
+    output=$(${CLI_CMD} ${RESOURCE} ${LIST_VERB} </dev/null 2>&1); code=$?
+fi
 
 if [ "${code}" -eq 124 ]; then
     fail "CLI timed out (${TIMEOUT_SECS}s) — likely waiting for interactive input"
@@ -24,6 +29,7 @@ else
 fi
 
 # 3b: インタラクティブプロンプトが含まれない
+# 出力が valid JSON であれば構造化データを返しているため、プロンプトチェックはスキップ
 echo "Testing: no interactive prompts in output"
 PROMPT_PATTERNS=(
     "Enter "
@@ -38,15 +44,19 @@ PROMPT_PATTERNS=(
 )
 
 found_prompt=0
-for pattern in "${PROMPT_PATTERNS[@]}"; do
-    if echo "${output}" | grep -qF "${pattern}"; then
-        fail "Interactive prompt pattern detected: '${pattern}'"
-        found_prompt=1
-    fi
-done
+if echo "${output}" | jq . > /dev/null 2>&1; then
+    pass "Output is valid JSON, skipping interactive prompt pattern checks"
+else
+    for pattern in "${PROMPT_PATTERNS[@]}"; do
+        if echo "${output}" | grep -qF "${pattern}"; then
+            fail "Interactive prompt pattern detected: '${pattern}'"
+            found_prompt=1
+        fi
+    done
 
-if [ "${found_prompt}" -eq 0 ]; then
-    pass "No interactive prompt patterns found in output"
+    if [ "${found_prompt}" -eq 0 ]; then
+        pass "No interactive prompt patterns found in output"
+    fi
 fi
 
 [ "${FAILURES}" -eq 0 ]

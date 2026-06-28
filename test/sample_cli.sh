@@ -11,7 +11,7 @@ POSITIONAL=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --format)      FORMAT="$2";             shift 2 ;;
+        --format)      FORMAT="${2:-}";           shift 2 ;;
         --format=*)    FORMAT="${1#--format=}"; shift   ;;
         --dry-run)     DRY_RUN=true;            shift   ;;
         --help|-h)

@@ -8,11 +8,10 @@ pass() { echo "  ✓ $1"; }
 fail() { echo "  ✗ $1"; FAILURES=$((FAILURES + 1)); }
 info() { echo "    → $1"; }
 
-# shellcheck disable=SC2086
 CREATE_CMD="${CLI_CMD} ${RESOURCE} ${CREATE_VERB} ${CREATE_ARGS}"
 
 echo "Testing: ${CREATE_CMD} --dry-run"
-output=$(${CREATE_CMD} --dry-run 2>&1); code=$?
+output=$(eval "${CREATE_CMD} --dry-run" 2>&1); code=$?
 
 if [ "${code}" -eq 0 ]; then
     pass "--dry-run flag is accepted and exits successfully"

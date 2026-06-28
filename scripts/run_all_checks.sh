@@ -4,6 +4,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHECKS_DIR="${SCRIPT_DIR}/checks"
 
+# Validate required env vars
+if [ -z "${CLI_CMD:-}" ]; then
+    echo "Error: CLI_CMD environment variable is required." >&2
+    exit 1
+fi
+if [ -z "${RESOURCE:-}" ]; then
+    echo "Error: RESOURCE environment variable is required." >&2
+    exit 1
+fi
+
 # Defaults for optional env vars
 export GET_VERB="${GET_VERB:-get}"
 export DESCRIBE_VERB="${DESCRIBE_VERB:-describe}"
@@ -11,6 +21,15 @@ export CREATE_ARGS="${CREATE_ARGS:-}"
 export INVALID_ARGS="${INVALID_ARGS:---invalid-flag-xyz-does-not-exist-abc123}"
 export NONEXISTENT_ID="${NONEXISTENT_ID:-nonexistent-id-xyz-999999-abc}"
 export SEVERITY="${SEVERITY:-required}"
+
+# Validate SEVERITY value
+case "${SEVERITY}" in
+    required|recommended|all) ;;
+    *)
+        echo "Error: Invalid SEVERITY '${SEVERITY}'. Must be one of: required, recommended, all" >&2
+        exit 1
+        ;;
+esac
 
 # Result tracking
 PASS_COUNT=0
