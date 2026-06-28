@@ -1,0 +1,83 @@
+name: 'Is Agent Friendly CI'
+description: |
+  CLI が AI エージェントフレンドリーな設計原則に従っているかチェックします。
+  参考: https://zenn.dev/assign/articles/b3d1d07d385b87
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  cli-command:
+    description: 'テスト対象の CLI コマンド (例: "mycli" or "./bin/cli")'
+    required: true
+  resource:
+    description: 'テストに使うリソース名詞 (例: "task", "project")'
+    required: true
+  list-verb:
+    description: 'リソース一覧取得の動詞'
+    default: 'list'
+    required: false
+  create-verb:
+    description: 'リソース作成の動詞'
+    default: 'create'
+    required: false
+  create-args:
+    description: 'create コマンドへの追加引数 (例: "--name test")'
+    default: ''
+    required: false
+  get-verb:
+    description: '単一リソース取得の動詞'
+    default: 'get'
+    required: false
+  describe-verb:
+    description: 'スキーマ自己記述の動詞'
+    default: 'describe'
+    required: false
+  invalid-args:
+    description: 'exit code 2 (引数エラー) を返すべき引数'
+    default: '--invalid-flag-xyz-does-not-exist-abc123'
+    required: false
+  nonexistent-id:
+    description: 'exit code 3 (未発見) を返すべき存在しないリソース ID'
+    default: 'nonexistent-id-xyz-999999-abc'
+    required: false
+  severity:
+    description: |
+      CI を失敗させる最低重要度:
+        "required"    - 必須チェックのみ (デフォルト)
+        "recommended" - 必須 + 強く推奨チェック
+        "all"         - 全チェック
+    default: 'required'
+    required: false
+
+outputs:
+  passed:
+    description: '合格したチェック数'
+    value: ${{ steps.checks.outputs.passed }}
+  failed:
+    description: '不合格だったチェック数'
+    value: ${{ steps.checks.outputs.failed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Make scripts executable
+      shell: bash
+      run: find "${{ github.action_path }}/scripts" -name "*.sh" -exec chmod +x {} \;
+
+    - name: Run agent-friendly checks
+      id: checks
+      shell: bash
+      env:
+        CLI_CMD: ${{ inputs.cli-command }}
+        RESOURCE: ${{ inputs.resource }}
+        LIST_VERB: ${{ inputs.list-verb }}
+        CREATE_VERB: ${{ inputs.create-verb }}
+        CREATE_ARGS: ${{ inputs.create-args }}
+        GET_VERB: ${{ inputs.get-verb }}
+        DESCRIBE_VERB: ${{ inputs.describe-verb }}
+        INVALID_ARGS: ${{ inputs.invalid-args }}
+        NONEXISTENT_ID: ${{ inputs.nonexistent-id }}
+        SEVERITY: ${{ inputs.severity }}
+      run: "${{ github.action_path }}/scripts/run_all_checks.sh"
