@@ -7,21 +7,6 @@ on:
         description: 'Tag name (e.g. v1.0.0)'
         required: true
         default: 'v1.0.0'
-      release_name:
-        description: 'Release title'
-        required: true
-        default: 'v1.0.0 - Initial release'
-      body:
-        description: 'Release notes'
-        required: false
-        default: |
-          Initial release of is-agent-friendly-ci.
-
-          ## What's included
-          - 8 checks covering all AI-agent-friendly CLI design principles from [the Zenn article](https://zenn.dev/assign/articles/b3d1d07d385b87)
-          - GitHub Actions composite action (`action.yml`)
-          - Severity-gated CI failure: `required` / `recommended` / `all`
-          - Reference sample CLI (`test/sample_cli.sh`)
 
 permissions:
   contents: write
@@ -30,18 +15,20 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Create Release
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: '${{ inputs.tag }}',
-              name: '${{ inputs.release_name }}',
-              body: `${{ inputs.body }}`,
-              draft: false,
-              prerelease: false,
-              generate_release_notes: false,
-            });
-            console.log('Release created successfully');
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create v1.0.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh release create "${TAG}" \
+            --title "${TAG} - Initial release" \
+            --notes "Initial release of is-agent-friendly-ci.
+
+## What's included
+- 8 checks covering all AI-agent-friendly CLI design principles from [the Zenn article](https://zenn.dev/assign/articles/b3d1d07d385b87)
+- GitHub Actions composite action (\`action.yml\`)
+- Severity-gated CI failure: \`required\` / \`recommended\` / \`all\`
+- Reference sample CLI (\`test/sample_cli.sh\`)"
