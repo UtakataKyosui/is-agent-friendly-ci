@@ -14,7 +14,15 @@ if [ -z "${RESOURCE:-}" ]; then
     exit 1
 fi
 
+# Preflight: jq is required by all checks
+if ! command -v jq > /dev/null 2>&1; then
+    echo "Error: 'jq' is required but not installed. Please install jq before running these checks." >&2
+    exit 1
+fi
+
 # Defaults for optional env vars
+export LIST_VERB="${LIST_VERB:-list}"
+export CREATE_VERB="${CREATE_VERB:-create}"
 export GET_VERB="${GET_VERB:-get}"
 export DESCRIBE_VERB="${DESCRIBE_VERB:-describe}"
 export CREATE_ARGS="${CREATE_ARGS:-}"

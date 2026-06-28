@@ -11,7 +11,15 @@ POSITIONAL=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --format)      FORMAT="${2:-}";           shift 2 ;;
+        --format)
+            if [ $# -lt 2 ]; then
+                printf '{"schema_version":"%s","kind":"Error","error":"--format requires a value","next_step":"Use --format=json or --format tsv"}\n' \
+                    "${SCHEMA_VERSION}" >&2
+                exit 2
+            fi
+            FORMAT="$2"
+            shift 2
+            ;;
         --format=*)    FORMAT="${1#--format=}"; shift   ;;
         --dry-run)     DRY_RUN=true;            shift   ;;
         --help|-h)

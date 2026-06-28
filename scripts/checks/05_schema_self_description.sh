@@ -5,42 +5,47 @@
 set -uo pipefail
 
 FAILURES=0
+describe_found=0
 pass() { echo "  ✓ $1"; }
 fail() { echo "  ✗ $1"; FAILURES=$((FAILURES + 1)); }
 info() { echo "    → $1"; }
 
-DESCRIBE_PATTERNS=(
-    "${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} ${LIST_VERB} --format json"
-    "${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} ${CREATE_VERB} --format json"
-    "${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} --format json"
-    "${CLI_CMD} ${DESCRIBE_VERB} --format json"
-    "${CLI_CMD} ${RESOURCE} ${LIST_VERB} --help --format json"
-)
+# eval を使わず直接コマンドとして実行することでメタキャラクタ挿入を防ぐ
+try_describe() {
+    local label="$1"; shift
+    echo "Trying: ${label}"
+    local out code
+    out=$("$@" 2>/dev/null); code=$?
+    [ "${code}" -eq 0 ] || return 1
+    echo "${out}" | jq . > /dev/null 2>&1 || return 1
 
-describe_found=0
-for pattern in "${DESCRIBE_PATTERNS[@]}"; do
-    echo "Trying: ${pattern}"
-    output=$(eval "${pattern}" 2>/dev/null); code=$?
-
-    if [ "${code}" -eq 0 ] && echo "${output}" | jq . > /dev/null 2>&1; then
-        pass "Schema description available: ${pattern}"
-
-        if echo "${output}" | jq -e '.args // .parameters // .options // .flags // .arguments' > /dev/null 2>&1; then
-            pass "Schema includes argument definitions field"
-        else
-            info "Schema JSON returned but lacks a standard argument field (args/parameters/options/flags)"
-        fi
-        describe_found=1
-        break
+    pass "Schema description available: ${label}"
+    if echo "${out}" | jq -e '.args // .parameters // .options // .flags // .arguments' > /dev/null 2>&1; then
+        pass "Schema includes argument definitions field"
+    else
+        info "Schema JSON returned but lacks a standard argument field (args/parameters/options/flags)"
     fi
-done
+    describe_found=1
+    return 0
+}
+
+# 各パターンを直接コマンドとして試す (eval なし)
+# shellcheck disable=SC2086
+try_describe "${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} ${LIST_VERB} --format json" \
+    ${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} ${LIST_VERB} --format json ||
+try_describe "${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} ${CREATE_VERB} --format json" \
+    ${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} ${CREATE_VERB} --format json ||
+try_describe "${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} --format json" \
+    ${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} --format json ||
+try_describe "${CLI_CMD} ${DESCRIBE_VERB} --format json" \
+    ${CLI_CMD} ${DESCRIBE_VERB} --format json ||
+try_describe "${CLI_CMD} ${RESOURCE} ${LIST_VERB} --help --format json" \
+    ${CLI_CMD} ${RESOURCE} ${LIST_VERB} --help --format json ||
+true
 
 if [ "${describe_found}" -eq 0 ]; then
     fail "No machine-readable schema description found"
-    info "Tried the following patterns:"
-    for p in "${DESCRIBE_PATTERNS[@]}"; do
-        info "  ${p}"
-    done
+    info "Tried: ${CLI_CMD} ${DESCRIBE_VERB} ${RESOURCE} ${LIST_VERB}|${CREATE_VERB} --format json, etc."
 fi
 
 [ "${FAILURES}" -eq 0 ]

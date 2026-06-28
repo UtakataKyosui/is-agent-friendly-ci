@@ -8,15 +8,17 @@ pass() { echo "  ✓ $1"; }
 fail() { echo "  ✗ $1"; FAILURES=$((FAILURES + 1)); }
 info() { echo "    → $1"; }
 
-CREATE_CMD="${CLI_CMD} ${RESOURCE} ${CREATE_VERB} ${CREATE_ARGS}"
+echo "Testing: ${CLI_CMD} ${RESOURCE} ${CREATE_VERB} ${CREATE_ARGS} --dry-run"
 
-echo "Testing: ${CREATE_CMD} --dry-run"
-output=$(eval "${CREATE_CMD} --dry-run" 2>&1); code=$?
+# eval を使わず word-splitting で実行 (メタキャラクタ挿入を防ぐ)
+# shellcheck disable=SC2086
+output=$(${CLI_CMD} ${RESOURCE} ${CREATE_VERB} ${CREATE_ARGS} --dry-run 2>&1); code=$?
 
 if [ "${code}" -eq 0 ]; then
     pass "--dry-run flag is accepted and exits successfully"
 
-    if echo "${output}" | grep -qi "dry.run\|would\|preview\|simul"; then
+    # -E フラグで GNU/BSD grep 両方に対応
+    if echo "${output}" | grep -qiE "dry.run|would|preview|simul"; then
         pass "Output text indicates simulation (dry run)"
     elif echo "${output}" | jq -e '.dry_run // .preview // .would_create // .simulated // .simulation' > /dev/null 2>&1; then
         pass "JSON output includes dry-run simulation field"

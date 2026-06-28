@@ -20,7 +20,8 @@ fi
 
 # 4b: create 動詞も noun-verb 形式で動作する
 echo "Testing noun-verb create: ${CLI_CMD} ${RESOURCE} ${CREATE_VERB} ${CREATE_ARGS}"
-eval "${CLI_CMD} ${RESOURCE} ${CREATE_VERB} ${CREATE_ARGS}" > /dev/null 2>&1; code=$?
+# shellcheck disable=SC2086
+${CLI_CMD} ${RESOURCE} ${CREATE_VERB} ${CREATE_ARGS} > /dev/null 2>&1; code=$?
 if [ "${code}" -eq 0 ]; then
     pass "Create verb works: '${CLI_CMD} ${RESOURCE} ${CREATE_VERB}' → exit 0"
 else
