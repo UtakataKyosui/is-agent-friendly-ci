@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-with-sample-cli:
+    name: Test checks with sample CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make sample CLI executable
+        run: chmod +x test/sample_cli.sh
+
+      - name: Run agent-friendly checks (severity=all)
+        uses: ./
+        with:
+          cli-command: './test/sample_cli.sh'
+          resource: 'task'
+          list-verb: 'list'
+          create-verb: 'create'
+          get-verb: 'get'
+          describe-verb: 'describe'
+          create-args: ''
+          nonexistent-id: 'nonexistent-id-xyz-999999-abc'
+          severity: 'all'
